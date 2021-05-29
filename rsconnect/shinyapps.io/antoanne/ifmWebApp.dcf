@@ -1,0 +1,13 @@
+name: ifmWebApp
+title: ifmWebApp
+username:
+account: antoanne
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 4202784
+bundleId: 4655062
+url: https://antoanne.shinyapps.io/ifmWebApp/
+when: 1622311674.08893
+lastSyncTime: 1622311674.08893
+asMultiple: FALSE
+asStatic: FALSE
