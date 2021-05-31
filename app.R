@@ -1,4 +1,19 @@
 library(shiny)
+library(ifm)
+library(igraph)
+library(XLConnect)
+
+# tryCatch(
+#     {
+#         df <<- excel.xls.to.list('www/spreadsheet.xls')
+#     },
+#     error = function(e) {
+#         stop(safeError(e))
+#     }
+# )
+
+df <- excel.xls.to.list('www/spreadsheet.xls')
+
 
 # Define UI for application
 ui <- fluidPage(
@@ -28,29 +43,27 @@ ui <- fluidPage(
             p('Click ', actionLink("loadSampleData", "here"), 'to load example data.'),
             
             p('If you need an template data file,',
-              a(href="sample.csv", "download a CSV sample file, "),
+              a(href="spreadsheet.xls", "download a CSV sample file, "),
               'implement your case and upload here again.'),
 
-            fileInput("file1", "Upload CSV File",
+            fileInput("file1", "Upload XLS or CSV File",
                       multiple = FALSE,
-                      accept = c("text/csv",
-                                 "text/comma-separated-values,text/plain",
-                                 ".csv"),
-                      placeholder = 'Upload your CSV Data File here'),
+                      accept = c(".xls", ".csv"),
+                      placeholder = 'Upload your Data File here'),
             
             tags$hr(),
             
             h3('Settings'),
             
-            numericInput("taxRate", "Define % of Tax Rate:", 2.4, step = 0.1, width = 80),
+            p(numericInput("taxRate", "Define % of Tax Rate:", 2, step = 0.1, width = 80)),
             
             p(actionButton("executeIfm", "Execute IFM"), align='right'),
 
         ),
 
         mainPanel(
-            tableOutput("contents"),
-            
+            textOutput("contents"),
+            plotOutput("plotGraph"),
         )
     ),
     
@@ -58,33 +71,29 @@ ui <- fluidPage(
     tags$hr(),
     
     fluidRow(
-        column(2,
-               a(href='http://ufrj.br', p(img(src = "minerva.png", width = 60)),align='left')
+        column(1,
+               a(href='http://ufrj.br', p(img(src = "minerva.png", width = 60)),align='right')
         ),
-        p(column(10,
-               
+        column(5,
+                h6('More datails in https://github.com/antoanne/ifmWebApp.'), align='left' ),
+        column(6,
                h6('Author: Antoanne Christopher Pontes Wanderley'),
                h6('Advisor: Prof. Eber Assis Schmitz, Ph.D.'),
                h6('Co-advisor: Prof. Sérgio Manuel Serra da Cruz, D.Sc.'), align='right'),
-        ),
-        
     ),
     
     
 )
 
 # Define server logic
-server <- function(input, output) {
+server <- function(input, output, session) {
 
     observeEvent(input$file1, {
         output$contents <- renderTable({
             req(input$file1)
             tryCatch(
                 {
-                    df <- read.csv(input$file1$datapath,
-                                   header = TRUE,
-                                   sep = ";",
-                                   quote = "")
+                    df <<- excel.xls.to.list(input$file1$datapath)
                 },
                 error = function(e) {
                     stop(safeError(e))
@@ -93,27 +102,38 @@ server <- function(input, output) {
             return(df)
         })
     })
-    
+
     observeEvent(input$loadSampleData, {
-        output$contents <- renderTable({
+        output$contents <- renderText({
             tryCatch(
                 {
-                    df <- read.csv('www/sample.csv',
-                                   header = TRUE,
-                                   sep = ";",
-                                   quote = "")
+                    df <<- excel.xls.to.list('www/spreadsheet.xls')
                 },
                 error = function(e) {
                     stop(safeError(e))
                 }
             )
-            return(df)
+            return(df$activities)
         })
     })
+
     
     observeEvent(input$executeIfm, {
-        
-        print({input$taxRate})
+        output$plotGraph <- renderPlot({
+            tryCatch(
+                {
+                    df <<- excel.xls.to.list('www/spreadsheet.xls')
+                    edges <- utils.pred2graph(df$predecessors)
+                    g <- make_graph(edges, directed = TRUE )
+                    plot(g)
+                    updateNumericInput(session, "taxRate", value = df$interest.rate*100)
+                    return(df)
+                },
+                error = function(e) {
+                    stop(safeError(e))
+                }
+            )
+        })
     })
     
     
